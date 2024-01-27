@@ -8,8 +8,29 @@ export module vr4w;
 import std;
 
 const auto EngineWndClass = TEXT("Vr4wEngineWndClass");
+constexpr unsigned MaxDeviceIndex =
+    9;  // see
+        // https://learn.microsoft.com/en-us/windows/win32/api/vfw/nf-vfw-capgetdriverdescriptiona
 
 export namespace vr4w {
+
+export struct DeviceInfo {
+  unsigned Index;
+  std::wstring Name;
+  std::wstring Version;
+};
+
+export std::vector<DeviceInfo> GetAllDevices() {
+  std::vector<DeviceInfo> result;
+  wchar_t name[MAX_PATH];
+  wchar_t version[MAX_PATH];
+  for (auto idx = 0u; idx <= MaxDeviceIndex; ++idx) {
+    if (capGetDriverDescriptionW(idx, name, MAX_PATH, version, MAX_PATH)) {
+      result.push_back(DeviceInfo{.Index = idx, .Name = name, .Version = version});
+    }
+  }
+  return result;
+}
 
 export class CaptureEngine {
  public:

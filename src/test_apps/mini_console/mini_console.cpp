@@ -1,4 +1,7 @@
 import std;
 import vr4w;
 
-int main() { vr4w::CaptureEngine engine; }
+int main() {
+  auto devices = vr4w::GetAllDevices();
+  vr4w::CaptureEngine engine;
+}
