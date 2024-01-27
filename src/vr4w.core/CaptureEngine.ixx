@@ -1,7 +1,9 @@
-export module vr4w;
+module;
 
 // pch
 #include "pch.h"
+
+export module vr4w;
 
 import std;
 
