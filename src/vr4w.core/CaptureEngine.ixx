@@ -6,11 +6,14 @@ module;
 export module vr4w;
 
 import std;
+import :Awaiters;
+import :Coroutines;
 
 const auto EngineWndClass = TEXT("Vr4wEngineWndClass");
 constexpr unsigned MaxDeviceIndex =
     9;  // see
         // https://learn.microsoft.com/en-us/windows/win32/api/vfw/nf-vfw-capgetdriverdescriptiona
+enum class EngineMessage : unsigned { ResumeOnLoop };
 
 export namespace vr4w {
 
@@ -35,6 +38,14 @@ export std::vector<DeviceInfo> GetAllDevices() {
 export class CaptureEngine {
  public:
   CaptureEngine() : engineThrd_([this] { EngineThread(); }) {}
+  FireAndForget Connect(unsigned deviceIndex) {
+    co_await ResumeOnLoop(hwnd_, std::to_underlying(EngineMessage::ResumeOnLoop));
+    //auto r = SendMessage(hwnd_, WM_CAP_DRIVER_CONNECT, static_cast<WPARAM>(deviceIndex), 0);
+    deviceIndex;
+    auto c = capDriverConnect(hwnd_, deviceIndex);
+    c;
+    std::terminate();
+  }
   void Stop() {}
 
  private:
@@ -47,6 +58,10 @@ export class CaptureEngine {
     }
     MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0)) {
+      if (msg.message == std::to_underlying(EngineMessage::ResumeOnLoop)) {
+        InvokeOnLoop(msg.lParam);
+        continue;
+      }
       DispatchMessage(&msg);
     }
   }
