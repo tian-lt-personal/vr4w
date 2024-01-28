@@ -103,8 +103,11 @@ Task<> CaptureEngine::Stop() {
 
 void CaptureEngine::EngineThread() {
   SetThreadDescription(GetCurrentThread(), L"vr4w.core.capture_engine");
-  if (S_OK != CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)) {
+  if (FAILED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED))) {
     throw std::runtime_error{"nAyB8FtC"};
+  }
+  if (FAILED(MFStartup(MF_VERSION, MFSTARTUP_LITE))) {
+    throw std::runtime_error{"mkPCPu1S"};
   }
   RegisterWndClass();
   hwnd_ = CreateWindowEx(0, EngineWndClass, nullptr, 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, nullptr,
@@ -122,6 +125,7 @@ void CaptureEngine::EngineThread() {
     }
     DispatchMessage(&msg);
   }
+  MFShutdown();
   CoUninitialize();
 }
 

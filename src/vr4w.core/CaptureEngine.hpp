@@ -32,7 +32,9 @@ struct DeviceInfo {
   std::wstring SymbolicLink;
 };
 
-struct Device;  // opaque type
+// opaque types
+struct Device;
+struct RecordingContext;
 
 std::vector<DeviceInfo> GetAllDevices() noexcept;
 
