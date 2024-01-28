@@ -2,6 +2,7 @@
 
 // std headers
 #include <expected>
+#include <memory>
 #include <semaphore>
 #include <string>
 #include <thread>
@@ -31,24 +32,7 @@ struct DeviceInfo {
   std::wstring SymbolicLink;
 };
 
-class Device {
-  friend struct PtrAccessor;
-  friend class CaptureEngine;
-
- public:
-  Device(const Device&) = delete;
-  Device(Device&&) noexcept;
-
-  Device& operator=(const Device&) = delete;
-  Device& operator=(Device&&) noexcept;
-  ~Device();
-
- private:
-  explicit Device(void* ptr) noexcept : ptr_(ptr) {}
-
- private:
-  void* ptr_;
-};
+struct Device;  // opaque type
 
 std::vector<DeviceInfo> GetAllDevices() noexcept;
 
@@ -58,9 +42,9 @@ class CaptureEngine {
  public:
   CaptureEngine();
   Task<> Stop();
-  Task<std::expected<Device, CaptureEnginError>> CreateDevice(
+  Task<std::expected<std::shared_ptr<Device>, CaptureEnginError>> CreateDevice(
       std::wstring symbolicLink) const noexcept;
-  Task<> Start(const Device& device) const noexcept;
+  Task<> Start(std::shared_ptr<Device> device) const noexcept;
 
  private:
   void EngineThread();

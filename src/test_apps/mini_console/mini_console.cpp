@@ -24,6 +24,10 @@ int main() {
   vr4w::CaptureEngine engine;
   auto async = [&]() -> vr4w::FireAndForget {
     auto device = co_await engine.CreateDevice(devices[0].SymbolicLink);
+    if (!device.has_value()) {
+      throw std::runtime_error{"Failed to create device"};
+    }
+    co_await engine.Start(*device);
     co_await engine.Stop();
   };
   async();

@@ -19,26 +19,26 @@ void SafeRelase(auto&& ptr) {
   }
 }
 
-struct PtrAccessor {
-  template <class T>
-  static T* Get(const vr4w::Device& obj) {
-    return static_cast<T*>(obj.ptr_);
-  }
-};
-
 }  // namespace
 
 namespace vr4w {
 
-struct CaptureEngine::Intl {
-  static auto ResumeOnLoop(const CaptureEngine& self) {
-    return impl::ResumeOnLoop(self.hwnd_, std::to_underlying(EngineMessage::ResumeOnLoop));
+// claim opaque types
+struct Device {
+  constexpr explicit Device(IMFMediaSource* ptr) noexcept : Ptr(ptr) {}
+  Device(const Device&) = delete;
+  Device(Device&&) = delete;
+  Device& operator=(const Device&) = delete;
+  Device& operator=(Device&&) = delete;
+  ~Device() {
+    Ptr->Shutdown();
+    Ptr->Release();
   }
-  static bool NotInApartment(const CaptureEngine& self) {
-    return GetCurrentThreadId() != self.tid_;
-  }
+
+  IMFMediaSource* Ptr;
 };
 
+// global functions
 std::vector<DeviceInfo> GetAllDevices() noexcept {
   std::vector<DeviceInfo> result;
   wil::com_ptr<IMFAttributes> attrs;
@@ -80,23 +80,15 @@ std::vector<DeviceInfo> GetAllDevices() noexcept {
   return result;
 }
 
-Device::Device(Device&& rhs) noexcept : ptr_(std::exchange(rhs.ptr_, nullptr)) {}
-
-Device& Device::operator=(Device&& rhs) noexcept {
-  if (&rhs == this) {
-    return *this;
+// internal CaptureEngine
+struct CaptureEngine::Intl {
+  static auto ResumeOnLoop(const CaptureEngine& self) {
+    return impl::ResumeOnLoop(self.hwnd_, std::to_underlying(EngineMessage::ResumeOnLoop));
   }
-  ptr_ = std::exchange(rhs.ptr_, nullptr);
-  return *this;
-}
-
-Device::~Device() {
-  if (ptr_ != nullptr) {
-    auto source = PtrAccessor::Get<IMFMediaSource>(*this);
-    source->Shutdown();
-    source->Release();
+  static bool NotInApartment(const CaptureEngine& self) {
+    return GetCurrentThreadId() != self.tid_;
   }
-}
+};
 
 CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {
   launchedSignal_.acquire();
@@ -155,7 +147,7 @@ LRESULT CALLBACK CaptureEngine::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
   return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
-Task<std::expected<Device, CaptureEnginError>> CaptureEngine::CreateDevice(
+Task<std::expected<std::shared_ptr<Device>, CaptureEnginError>> CaptureEngine::CreateDevice(
     std::wstring symbolicLink) const noexcept {
   if (Intl::NotInApartment(*this)) {
     co_await Intl::ResumeOnLoop(*this);
@@ -174,10 +166,10 @@ Task<std::expected<Device, CaptureEnginError>> CaptureEngine::CreateDevice(
   if (FAILED(MFCreateDeviceSource(attrs.get(), source.addressof()))) {
     co_return std::unexpected(CaptureEnginError::MFError);
   }
-  co_return Device{source.detach()};
+  co_return std::make_shared<Device>(source.detach());
 }
 
-Task<> CaptureEngine::Start(const Device&) const noexcept {
+Task<> CaptureEngine::Start(std::shared_ptr<Device> device) const noexcept {
   if (Intl::NotInApartment(*this)) {
     co_await Intl::ResumeOnLoop(*this);
   }
