@@ -24,7 +24,7 @@ int main() {
   vr4w::CaptureEngine engine;
   auto async = [&]() -> vr4w::FireAndForget {
     auto device = co_await engine.CreateDevice(devices[0].SymbolicLink);
-    engine.Stop();
+    co_await engine.Stop();
   };
   async();
 }

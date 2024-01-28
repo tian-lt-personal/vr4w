@@ -50,8 +50,7 @@ class CaptureEngine {
 
  public:
   CaptureEngine();
-  FireAndForget Stop();
-
+  Task<> Stop();
   Task<std::expected<Device, CaptureEnginError>> CreateDevice(std::wstring symbolicLink);
 
  private:

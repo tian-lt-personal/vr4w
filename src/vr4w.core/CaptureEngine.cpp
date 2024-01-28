@@ -93,7 +93,7 @@ CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {
   launchedSignal_.acquire();
 }
 
-FireAndForget CaptureEngine::Stop() {
+Task<> CaptureEngine::Stop() {
   if (Intl::NotInApartment(*this)) {
     co_await Intl::ResumeOnLoop(*this);
   }
