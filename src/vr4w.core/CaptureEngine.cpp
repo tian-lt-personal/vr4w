@@ -27,6 +27,9 @@ struct CaptureEngine::Intl {
   static auto ResumeOnLoop(const CaptureEngine& self) {
     return impl::ResumeOnLoop(self.hwnd_, std::to_underlying(EngineMessage::ResumeOnLoop));
   }
+  static bool NotInApartment(const CaptureEngine& self) {
+    return GetCurrentThreadId() != self.tid_;
+  }
 };
 
 std::vector<DeviceInfo> GetAllDevices() noexcept {
@@ -91,11 +94,14 @@ CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {
 }
 
 FireAndForget CaptureEngine::Stop() {
-  co_await Intl::ResumeOnLoop(*this);
+  if (Intl::NotInApartment(*this)) {
+    co_await Intl::ResumeOnLoop(*this);
+  }
   PostQuitMessage(0);
 }
 
 void CaptureEngine::EngineThread() {
+  SetThreadDescription(GetCurrentThread(), L"vr4w.core.capture_engine");
   if (S_OK != CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)) {
     throw std::runtime_error{"nAyB8FtC"};
   }
@@ -105,6 +111,7 @@ void CaptureEngine::EngineThread() {
   if (!hwnd_) {
     throw std::runtime_error{"xhi7P9DG"};
   }
+  tid_ = GetCurrentThreadId();
   launchedSignal_.release();
   MSG msg;
   while (GetMessage(&msg, nullptr, 0, 0)) {
@@ -141,7 +148,9 @@ LRESULT CALLBACK CaptureEngine::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
 
 Task<std::expected<Device, CaptureEnginError>> CaptureEngine::CreateDevice(
     std::wstring symbolicLink) {
-  co_await Intl::ResumeOnLoop(*this);
+  if (Intl::NotInApartment(*this)) {
+    co_await Intl::ResumeOnLoop(*this);
+  }
   wil::com_ptr<IMFMediaSource> source;
   wil::com_ptr<IMFAttributes> attrs;
   if (FAILED(MFCreateAttributes(attrs.addressof(), 2))) {

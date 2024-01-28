@@ -65,6 +65,7 @@ class CaptureEngine {
   std::binary_semaphore launchedSignal_{0};
   std::jthread engineThrd_;
   HWND hwnd_ = nullptr;
+  DWORD tid_ = 0;
 };
 
 }  // namespace vr4w

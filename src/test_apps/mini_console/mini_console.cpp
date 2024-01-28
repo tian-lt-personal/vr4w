@@ -20,6 +20,7 @@ void dumpDevices(std::span<vr4w::DeviceInfo> devices) {
 int main() {
   auto devices = vr4w::GetAllDevices();
   dumpDevices(devices);
+
   vr4w::CaptureEngine engine;
   auto async = [&]() -> vr4w::FireAndForget {
     auto device = co_await engine.CreateDevice(devices[0].SymbolicLink);
