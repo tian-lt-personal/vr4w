@@ -11,12 +11,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Awaiters.ixx" />
-    <ClCompile Include="CaptureEngine.ixx" />
+    <ClCompile Include="Awaiters.cpp" />
+    <ClCompile Include="CaptureEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Awaiters.hpp" />
+    <ClInclude Include="CaptureEngine.hpp" />
+    <ClInclude Include="Coroutines.hpp" />
     <ClInclude Include="pch.h" />
-    <ClCompile Include="Coroutines.ixx" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
@@ -65,10 +67,10 @@
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <EnableModules>true</EnableModules>
+      <EnableModules>false</EnableModules>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <BuildStlModules>true</BuildStlModules>
+      <BuildStlModules>false</BuildStlModules>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -84,10 +86,10 @@
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <EnableModules>true</EnableModules>
+      <EnableModules>false</EnableModules>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <BuildStlModules>true</BuildStlModules>
+      <BuildStlModules>false</BuildStlModules>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>

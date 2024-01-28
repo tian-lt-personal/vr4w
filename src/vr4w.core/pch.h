@@ -2,7 +2,13 @@
 
 // common windows headers
 #include <Windows.h>
+#include <wil/com.h>
 
-// video framework headers
-#include <Vfw.h>
-#pragma comment(lib, "Vfw32.lib")
+// media framework headers
+#include <mfapi.h>
+#include <mfidl.h>
+#include <mfobjects.h>
+
+#pragma comment(lib, "Mf.lib")
+#pragma comment(lib, "Mfplat.lib")
+#pragma comment(lib, "Mfuuid.lib")

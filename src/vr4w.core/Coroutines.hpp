@@ -1,13 +1,11 @@
-module;
+#pragma once
 
-#include "pch.h"
+#include <coroutine>
+#include <exception>
 
-export module vr4w:Coroutines;
-import std;
+namespace vr4w::impl {
 
-namespace vr4w::details {
-
-export struct FireAndForget {
+struct FireAndForget {
   struct promise_type {
     auto get_return_object() const noexcept { return FireAndForget{}; }
     void return_void() const noexcept {};
@@ -17,4 +15,4 @@ export struct FireAndForget {
   };
 };
 
-}  // namespace vr4w::details
+}  // namespace vr4w::impl
