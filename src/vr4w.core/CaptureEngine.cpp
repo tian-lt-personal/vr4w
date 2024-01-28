@@ -42,6 +42,7 @@ std::vector<DeviceInfo> GetAllDevices() noexcept {
     for (auto i = 0u; i < count; ++i) {
       SafeRelase(devices[i]);
     }
+    CoTaskMemFree(devices);
   });
   for (auto i = 0u; i < count; ++i) {
     wil::unique_cotaskmem_string displayName;
@@ -61,6 +62,38 @@ std::vector<DeviceInfo> GetAllDevices() noexcept {
         DeviceInfo{.DisplayName = displayName.get(), .SymbolicLink = symbolicLink.get()});
   }
   return result;
+}
+
+std::expected<Device, CaptureEnginError> CreateDevice(std::wstring symbolicLink) noexcept {
+  wil::com_ptr<IMFMediaSource> source;
+  wil::com_ptr<IMFAttributes> attrs;
+  if (FAILED(MFCreateAttributes(attrs.addressof(), 2))) {
+    return std::unexpected(CaptureEnginError::MFError);
+  }
+  if (FAILED(attrs->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+                            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID)) ||
+      FAILED(attrs->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
+                              symbolicLink.c_str()))) {
+    return std::unexpected(CaptureEnginError::MFError);
+  }
+  if (FAILED(MFCreateDeviceSource(attrs.get(), source.addressof()))) {
+    return std::unexpected(CaptureEnginError::MFError);
+  }
+  return Device{source.detach()};
+}
+
+Device::Device(Device&& rhs) noexcept : ptr_(std::exchange(rhs.ptr_, nullptr)) {}
+Device& Device::operator=(Device&& rhs) noexcept {
+  if (&rhs == this) {
+    return *this;
+  }
+  ptr_ = std::exchange(rhs.ptr_, nullptr);
+  return *this;
+}
+Device::~Device() {
+  if (ptr_ != nullptr) {
+    static_cast<IMFMediaSource*>(ptr_)->Release();
+  }
 }
 
 CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {

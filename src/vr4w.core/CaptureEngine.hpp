@@ -1,6 +1,7 @@
 #pragma once
 
 // std headers
+#include <expected>
 #include <semaphore>
 #include <string>
 #include <thread>
@@ -17,12 +18,33 @@
 
 namespace vr4w {
 
+enum class CaptureEnginError { Unknown, MFError };
+
 struct DeviceInfo {
   std::wstring DisplayName;
   std::wstring SymbolicLink;
 };
 
+class Device {
+  friend std::expected<Device, CaptureEnginError> CreateDevice(std::wstring symbolicLink) noexcept;
+
+ public:
+  Device(const Device&) = delete;
+  Device(Device&&) noexcept;
+
+  Device& operator=(const Device&) = delete;
+  Device& operator=(Device&&) noexcept;
+  ~Device();
+
+ private:
+  explicit Device(void* ptr) noexcept : ptr_(ptr) {}
+
+ private:
+  void* ptr_;
+};
+
 std::vector<DeviceInfo> GetAllDevices() noexcept;
+std::expected<Device, CaptureEnginError> CreateDevice(std::wstring symbolicLink) noexcept;
 
 class CaptureEngine {
  public:
