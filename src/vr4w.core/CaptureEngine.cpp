@@ -145,7 +145,7 @@ LRESULT CALLBACK CaptureEngine::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
     case WM_CREATE: {
       auto cs = reinterpret_cast<CREATESTRUCT*>(lparam);
       SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(cs->lpCreateParams));
-      break;
+      return 0;
     }
   }
   return DefWindowProc(hwnd, msg, wparam, lparam);
