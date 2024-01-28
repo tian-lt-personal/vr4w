@@ -13,8 +13,7 @@ namespace {
 const auto EngineWndClass = TEXT("Vr4wEngineWndClass");
 enum class EngineMessage : unsigned { ResumeOnLoop };
 
-template <class P>
-void SafeRelase(P ptr) {
+void SafeRelase(auto&& ptr) {
   if (ptr != nullptr) {
     ptr->Release();
   }
@@ -48,14 +47,30 @@ std::vector<DeviceInfo> GetAllDevices() noexcept {
     wil::unique_cotaskmem_string displayName;
     auto hr = devices[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME,
                                              displayName.addressof(), nullptr);
-    hr;
+    if (FAILED(hr)) {
+      continue;
+    }
+
+    wil::unique_cotaskmem_string symbolicLink;
+    hr = devices[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
+                                        symbolicLink.addressof(), nullptr);
+    if (FAILED(hr)) {
+      continue;
+    }
+    result.push_back(
+        DeviceInfo{.DisplayName = displayName.get(), .SymbolicLink = symbolicLink.get()});
   }
   return result;
 }
 
-CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {}
+CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {
+  launchedSignal_.acquire();
+}
 impl::FireAndForget CaptureEngine::Connect(unsigned deviceIndex) { co_return; }
-void CaptureEngine::Stop() {}
+impl::FireAndForget CaptureEngine::Stop() {
+  co_await impl::ResumeOnLoop(hwnd_, std::to_underlying(EngineMessage::ResumeOnLoop));
+  PostQuitMessage(0);
+}
 
 void CaptureEngine::EngineThread() {
   if (S_OK != CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)) {
@@ -67,6 +82,7 @@ void CaptureEngine::EngineThread() {
   if (!hwnd_) {
     throw std::runtime_error{"xhi7P9DG"};
   }
+  launchedSignal_.release();
   MSG msg;
   while (GetMessage(&msg, nullptr, 0, 0)) {
     if (msg.message == std::to_underlying(EngineMessage::ResumeOnLoop)) {

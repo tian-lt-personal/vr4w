@@ -1,6 +1,7 @@
 #pragma once
 
 // std headers
+#include <semaphore>
 #include <string>
 #include <thread>
 #include <vector>
@@ -27,7 +28,7 @@ class CaptureEngine {
  public:
   CaptureEngine();
   impl::FireAndForget Connect(unsigned deviceIndex);
-  void Stop();
+  impl::FireAndForget Stop();
 
  private:
   void EngineThread();
@@ -37,8 +38,9 @@ class CaptureEngine {
   static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) noexcept;
 
  private:
+  std::binary_semaphore launchedSignal_{0};
   std::jthread engineThrd_;
-  HWND hwnd_;
+  HWND hwnd_ = nullptr;
 };
 
 }  // namespace vr4w

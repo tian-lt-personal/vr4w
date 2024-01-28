@@ -8,7 +8,7 @@ namespace vr4w::impl {
 
 namespace details {
 
-constexpr void SchedueLoopTask(HWND hwnd, UINT msg, bool async, void* handle) {
+void SchedueLoopTask(HWND hwnd, UINT msg, bool async, void* handle) {
   if (async) {
     PostMessage(hwnd, msg, 0, reinterpret_cast<LPARAM>(handle));
   } else {
