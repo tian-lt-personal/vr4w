@@ -16,6 +16,12 @@
 // about MF:
 // https://learn.microsoft.com/en-us/windows/win32/medfound/media-foundation-programming--essential-concepts
 
+namespace {
+
+struct PtrAccessor;
+
+}  // namespace
+
 namespace vr4w {
 
 enum class CaptureEnginError { Unknown, MFError };
@@ -26,6 +32,7 @@ struct DeviceInfo {
 };
 
 class Device {
+  friend struct PtrAccessor;
   friend class CaptureEngine;
 
  public:

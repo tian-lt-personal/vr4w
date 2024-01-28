@@ -19,6 +19,13 @@ void SafeRelase(auto&& ptr) {
   }
 }
 
+struct PtrAccessor {
+  template <class T>
+  static T* Get(const vr4w::Device& obj) {
+    return static_cast<T*>(obj.ptr_);
+  }
+};
+
 }  // namespace
 
 namespace vr4w {
@@ -85,7 +92,9 @@ Device& Device::operator=(Device&& rhs) noexcept {
 
 Device::~Device() {
   if (ptr_ != nullptr) {
-    static_cast<IMFMediaSource*>(ptr_)->Release();
+    auto source = PtrAccessor::Get<IMFMediaSource>(*this);
+    source->Shutdown();
+    source->Release();
   }
 }
 
