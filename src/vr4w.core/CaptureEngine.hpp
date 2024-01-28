@@ -58,7 +58,9 @@ class CaptureEngine {
  public:
   CaptureEngine();
   Task<> Stop();
-  Task<std::expected<Device, CaptureEnginError>> CreateDevice(std::wstring symbolicLink);
+  Task<std::expected<Device, CaptureEnginError>> CreateDevice(
+      std::wstring symbolicLink) const noexcept;
+  Task<> Start(const Device& device) const noexcept;
 
  private:
   void EngineThread();

@@ -156,7 +156,7 @@ LRESULT CALLBACK CaptureEngine::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
 }
 
 Task<std::expected<Device, CaptureEnginError>> CaptureEngine::CreateDevice(
-    std::wstring symbolicLink) {
+    std::wstring symbolicLink) const noexcept {
   if (Intl::NotInApartment(*this)) {
     co_await Intl::ResumeOnLoop(*this);
   }
@@ -175,6 +175,14 @@ Task<std::expected<Device, CaptureEnginError>> CaptureEngine::CreateDevice(
     co_return std::unexpected(CaptureEnginError::MFError);
   }
   co_return Device{source.detach()};
+}
+
+Task<> CaptureEngine::Start(const Device&) const noexcept {
+  if (Intl::NotInApartment(*this)) {
+    co_await Intl::ResumeOnLoop(*this);
+  }
+
+  co_return;
 }
 
 }  // namespace vr4w
