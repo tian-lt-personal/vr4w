@@ -25,7 +25,7 @@ struct PtrAccessor;
 
 namespace vr4w {
 
-enum class CaptureEnginError { Unknown, MFError };
+enum class CaptureEngineError { Unknown, MFError };
 
 struct DeviceInfo {
   std::wstring DisplayName;
@@ -44,9 +44,10 @@ class CaptureEngine {
  public:
   CaptureEngine();
   Task<> Stop();
-  Task<std::expected<std::shared_ptr<Device>, CaptureEnginError>> CreateDevice(
+  Task<std::expected<std::shared_ptr<Device>, CaptureEngineError>> CreateDevice(
       std::wstring symbolicLink) const noexcept;
-  Task<> Start(std::shared_ptr<Device> device) const noexcept;
+  Task<std::expected<std::shared_ptr<RecordingContext>, CaptureEngineError>> Start(
+      std::shared_ptr<Device> device) const noexcept;
 
  private:
   void EngineThread();

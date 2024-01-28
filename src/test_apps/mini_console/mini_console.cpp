@@ -28,7 +28,7 @@ int main() {
     if (!device.has_value()) {
       throw std::runtime_error{"Failed to create device"};
     }
-    co_await engine->Start(*device);
+    auto recording = co_await engine->Start(*device);
     co_await engine->Stop();
   };
   async(&engine, std::move(devices[0].SymbolicLink));

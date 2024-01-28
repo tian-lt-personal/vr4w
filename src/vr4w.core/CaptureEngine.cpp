@@ -19,23 +19,42 @@ void SafeRelase(auto&& ptr) {
   }
 }
 
+std::expected<wil::com_ptr<IMFAttributes>, vr4w::CaptureEngineError> CreateEmptyAttributes() {
+  wil::com_ptr<IMFAttributes> attrs;
+  if (FAILED(MFCreateAttributes(attrs.addressof(), 0))) {
+    return std::unexpected(vr4w::CaptureEngineError::MFError);
+  }
+  return attrs;
+}
+
+struct Singularity {
+  Singularity() = default;
+  Singularity(const Singularity&) = delete;
+  Singularity(Singularity&&) = delete;
+  Singularity& operator=(const Singularity&) = delete;
+  Singularity& operator=(Singularity&&) = delete;
+};
+
 }  // namespace
 
 namespace vr4w {
 
 // claim opaque types
-struct Device {
+struct Device : Singularity {
   constexpr explicit Device(IMFMediaSource* ptr) noexcept : Ptr(ptr) {}
-  Device(const Device&) = delete;
-  Device(Device&&) = delete;
-  Device& operator=(const Device&) = delete;
-  Device& operator=(Device&&) = delete;
   ~Device() {
     Ptr->Shutdown();
     Ptr->Release();
   }
 
   IMFMediaSource* Ptr;
+};
+
+struct RecordingContext : Singularity {
+  explicit RecordingContext(wil::com_ptr<IMFSourceReader> sourceReader) noexcept
+      : SourceReader(std::move(sourceReader)) {}
+
+  wil::com_ptr<IMFSourceReader> SourceReader;
 };
 
 // global functions
@@ -151,7 +170,7 @@ LRESULT CALLBACK CaptureEngine::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
   return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
-Task<std::expected<std::shared_ptr<Device>, CaptureEnginError>> CaptureEngine::CreateDevice(
+Task<std::expected<std::shared_ptr<Device>, CaptureEngineError>> CaptureEngine::CreateDevice(
     std::wstring symbolicLink) const noexcept {
   if (Intl::NotInApartment(*this)) {
     co_await Intl::ResumeOnLoop(*this);
@@ -159,26 +178,35 @@ Task<std::expected<std::shared_ptr<Device>, CaptureEnginError>> CaptureEngine::C
   wil::com_ptr<IMFMediaSource> source;
   wil::com_ptr<IMFAttributes> attrs;
   if (FAILED(MFCreateAttributes(attrs.addressof(), 2))) {
-    co_return std::unexpected(CaptureEnginError::MFError);
+    co_return std::unexpected(CaptureEngineError::MFError);
   }
   if (FAILED(attrs->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
                             MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID)) ||
       FAILED(attrs->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
                               symbolicLink.c_str()))) {
-    co_return std::unexpected(CaptureEnginError::MFError);
+    co_return std::unexpected(CaptureEngineError::MFError);
   }
   if (FAILED(MFCreateDeviceSource(attrs.get(), source.addressof()))) {
-    co_return std::unexpected(CaptureEnginError::MFError);
+    co_return std::unexpected(CaptureEngineError::MFError);
   }
   co_return std::make_shared<Device>(source.detach());
 }
 
-Task<> CaptureEngine::Start(std::shared_ptr<Device> device) const noexcept {
+Task<std::expected<std::shared_ptr<RecordingContext>, CaptureEngineError>> CaptureEngine::Start(
+    std::shared_ptr<Device> device) const noexcept {
   if (Intl::NotInApartment(*this)) {
     co_await Intl::ResumeOnLoop(*this);
   }
-
-  co_return;
+  auto emptyAttrs = CreateEmptyAttributes();
+  if (!emptyAttrs.has_value()) {
+    co_return std::unexpected(emptyAttrs.error());
+  }
+  wil::com_ptr<IMFSourceReader> reader;
+  if (FAILED(MFCreateSourceReaderFromMediaSource(device->Ptr, emptyAttrs->get(),
+                                                 reader.addressof()))) {
+    co_return std::unexpected(CaptureEngineError::MFError);
+  }
+  co_return std::make_shared<RecordingContext>(reader.detach());
 }
 
 }  // namespace vr4w
