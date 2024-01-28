@@ -23,6 +23,12 @@ void SafeRelase(auto&& ptr) {
 
 namespace vr4w {
 
+struct CaptureEngine::Intl {
+  static auto ResumeOnLoop(const CaptureEngine& self) {
+    return impl::ResumeOnLoop(self.hwnd_, std::to_underlying(EngineMessage::ResumeOnLoop));
+  }
+};
+
 std::vector<DeviceInfo> GetAllDevices() noexcept {
   std::vector<DeviceInfo> result;
   wil::com_ptr<IMFAttributes> attrs;
@@ -64,25 +70,8 @@ std::vector<DeviceInfo> GetAllDevices() noexcept {
   return result;
 }
 
-std::expected<Device, CaptureEnginError> CreateDevice(std::wstring symbolicLink) noexcept {
-  wil::com_ptr<IMFMediaSource> source;
-  wil::com_ptr<IMFAttributes> attrs;
-  if (FAILED(MFCreateAttributes(attrs.addressof(), 2))) {
-    return std::unexpected(CaptureEnginError::MFError);
-  }
-  if (FAILED(attrs->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
-                            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID)) ||
-      FAILED(attrs->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
-                              symbolicLink.c_str()))) {
-    return std::unexpected(CaptureEnginError::MFError);
-  }
-  if (FAILED(MFCreateDeviceSource(attrs.get(), source.addressof()))) {
-    return std::unexpected(CaptureEnginError::MFError);
-  }
-  return Device{source.detach()};
-}
-
 Device::Device(Device&& rhs) noexcept : ptr_(std::exchange(rhs.ptr_, nullptr)) {}
+
 Device& Device::operator=(Device&& rhs) noexcept {
   if (&rhs == this) {
     return *this;
@@ -90,6 +79,7 @@ Device& Device::operator=(Device&& rhs) noexcept {
   ptr_ = std::exchange(rhs.ptr_, nullptr);
   return *this;
 }
+
 Device::~Device() {
   if (ptr_ != nullptr) {
     static_cast<IMFMediaSource*>(ptr_)->Release();
@@ -99,9 +89,9 @@ Device::~Device() {
 CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {
   launchedSignal_.acquire();
 }
-impl::FireAndForget CaptureEngine::Connect(unsigned deviceIndex) { co_return; }
-impl::FireAndForget CaptureEngine::Stop() {
-  co_await impl::ResumeOnLoop(hwnd_, std::to_underlying(EngineMessage::ResumeOnLoop));
+
+FireAndForget CaptureEngine::Stop() {
+  co_await Intl::ResumeOnLoop(*this);
   PostQuitMessage(0);
 }
 
@@ -147,6 +137,26 @@ LRESULT CALLBACK CaptureEngine::WndProc(HWND hwnd, UINT msg, WPARAM wparam,
     }
   }
   return DefWindowProc(hwnd, msg, wparam, lparam);
+}
+
+Task<std::expected<Device, CaptureEnginError>> CaptureEngine::CreateDevice(
+    std::wstring symbolicLink) {
+  co_await Intl::ResumeOnLoop(*this);
+  wil::com_ptr<IMFMediaSource> source;
+  wil::com_ptr<IMFAttributes> attrs;
+  if (FAILED(MFCreateAttributes(attrs.addressof(), 2))) {
+    co_return std::unexpected(CaptureEnginError::MFError);
+  }
+  if (FAILED(attrs->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+                            MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID)) ||
+      FAILED(attrs->SetString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
+                              symbolicLink.c_str()))) {
+    co_return std::unexpected(CaptureEnginError::MFError);
+  }
+  if (FAILED(MFCreateDeviceSource(attrs.get(), source.addressof()))) {
+    co_return std::unexpected(CaptureEnginError::MFError);
+  }
+  co_return Device{source.detach()};
 }
 
 }  // namespace vr4w

@@ -26,7 +26,7 @@ struct DeviceInfo {
 };
 
 class Device {
-  friend std::expected<Device, CaptureEnginError> CreateDevice(std::wstring symbolicLink) noexcept;
+  friend class CaptureEngine;
 
  public:
   Device(const Device&) = delete;
@@ -44,13 +44,15 @@ class Device {
 };
 
 std::vector<DeviceInfo> GetAllDevices() noexcept;
-std::expected<Device, CaptureEnginError> CreateDevice(std::wstring symbolicLink) noexcept;
 
 class CaptureEngine {
+  struct Intl;
+
  public:
   CaptureEngine();
-  impl::FireAndForget Connect(unsigned deviceIndex);
-  impl::FireAndForget Stop();
+  FireAndForget Stop();
+
+  Task<std::expected<Device, CaptureEnginError>> CreateDevice(std::wstring symbolicLink);
 
  private:
   void EngineThread();
