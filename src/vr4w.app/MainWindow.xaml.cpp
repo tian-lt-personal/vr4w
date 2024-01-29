@@ -1,10 +1,8 @@
 // pch
 #include "pch.h"
 
-// codegen
+// self header
 #include "MainWindow.xaml.h"
-
-// winrt deps
 
 // factory
 #include "MainWindow.g.cpp"

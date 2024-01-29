@@ -1,0 +1,12 @@
+namespace vr4w_app {
+
+runtimeclass XResourceString : Microsoft.UI.Xaml.Markup.MarkupExtension {
+  XResourceString();
+
+  String Name {
+    get;
+    set;
+  };
+}
+
+}  // namespace vr4w_app

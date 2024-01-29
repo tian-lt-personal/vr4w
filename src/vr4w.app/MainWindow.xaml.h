@@ -1,5 +1,6 @@
 #pragma once
 
+// codegen
 #include "MainWindow.g.h"
 
 namespace winrt::vr4w_app::implementation {
