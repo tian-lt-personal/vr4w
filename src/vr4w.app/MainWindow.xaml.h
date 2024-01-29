@@ -4,7 +4,9 @@
 
 namespace winrt::vr4w_app::implementation {
 
-struct MainWindow : MainWindowT<MainWindow> {};
+struct MainWindow : MainWindowT<MainWindow> {
+  MainWindow();
+};
 
 }  // namespace winrt::vr4w_app::implementation
 
