@@ -24,6 +24,8 @@ MainWindow::MainWindow() {
   auto appWnd = AppWindow();
   appWnd.TitleBar().IconShowOptions(windowing::IconShowOptions::HideIconAndSystemMenu);
   appWnd.ResizeClient(GetAdaptedSize(800, 600, mui::GetWindowFromWindowId(appWnd.Id())));
+
+  InitializeComponent();
 }
 
 }  // namespace winrt::vr4w_app::implementation

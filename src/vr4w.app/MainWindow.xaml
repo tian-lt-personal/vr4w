@@ -8,4 +8,11 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="{local:XResourceString Name=AppDisplayName}"
     mc:Ignorable="d">
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="Base"/>
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <SwapChainPanel/>
+    </Grid>
 </Window>
