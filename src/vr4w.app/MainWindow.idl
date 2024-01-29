@@ -1,0 +1,5 @@
+namespace vr4w_app {
+
+[default_interface] runtimeclass MainWindow : Microsoft.UI.Xaml.Window { MainWindow(); }
+
+}  // namespace vr4w_app
