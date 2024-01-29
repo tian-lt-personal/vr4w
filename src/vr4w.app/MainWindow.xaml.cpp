@@ -8,11 +8,22 @@
 #include "MainWindow.g.cpp"
 
 namespace windowing = winrt::Microsoft::UI::Windowing;
+namespace mui = winrt::Microsoft::UI;
+
+namespace {
+winrt::Windows::Graphics::SizeInt32 GetAdaptedSize(int width, int height, HWND hwnd) {
+  auto dpi = GetDpiForWindow(hwnd);
+  return {MulDiv(width, dpi, 96), MulDiv(height, dpi, 96)};
+}
+
+}  // namespace
 
 namespace winrt::vr4w_app::implementation {
 
 MainWindow::MainWindow() {
-  AppWindow().TitleBar().IconShowOptions(windowing::IconShowOptions::HideIconAndSystemMenu);
+  auto appWnd = AppWindow();
+  appWnd.TitleBar().IconShowOptions(windowing::IconShowOptions::HideIconAndSystemMenu);
+  appWnd.ResizeClient(GetAdaptedSize(800, 600, mui::GetWindowFromWindowId(appWnd.Id())));
 }
 
 }  // namespace winrt::vr4w_app::implementation
