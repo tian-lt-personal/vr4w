@@ -40,6 +40,11 @@ std::vector<DeviceInfo> GetAllDevices() noexcept;
 
 class CaptureEngine {
   struct Intl;
+  class D3DImpl;
+
+  struct Deleters {
+    void operator()(D3DImpl* d3dimpl);
+  };
 
  public:
   CaptureEngine();
@@ -61,6 +66,7 @@ class CaptureEngine {
   std::jthread engineThrd_;
   HWND hwnd_ = nullptr;
   DWORD tid_ = 0;
+  std::unique_ptr<D3DImpl, Deleters> d3dimpl_;
 };
 
 }  // namespace vr4w

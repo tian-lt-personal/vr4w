@@ -1,8 +1,9 @@
 #pragma once
-//
+
+// windows headers
 #include <windows.h>
 
-//
+// com & winrt headers
 #include <hstring.h>
 #include <restrictederrorinfo.h>
 #include <unknwn.h>
@@ -29,5 +30,5 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Foundation.h>
 
-//
+// wil headers
 #include <wil/cppwinrt_helpers.h>

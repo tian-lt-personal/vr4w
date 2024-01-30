@@ -1,5 +1,9 @@
 #pragma once
 
+// directx headers
+#include <d3d11_4.h>
+#include <dxgi.h>
+
 // common windows headers
 #include <Windows.h>
 #include <wil/com.h>

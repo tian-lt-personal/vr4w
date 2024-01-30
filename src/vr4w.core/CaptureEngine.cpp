@@ -7,6 +7,9 @@
 // references
 #include "Awaiters.hpp"
 #include "Coroutines.hpp"
+#include "Utils.h"
+
+#pragma comment(lib, "D3D11.lib")
 
 namespace {
 
@@ -104,10 +107,39 @@ struct CaptureEngine::Intl {
   static auto ResumeOnLoop(const CaptureEngine& self) {
     return impl::ResumeOnLoop(self.hwnd_, std::to_underlying(EngineMessage::ResumeOnLoop));
   }
+
   static bool NotInApartment(const CaptureEngine& self) {
     return GetCurrentThreadId() != self.tid_;
   }
 };
+
+// D3D impl
+class CaptureEngine::D3DImpl {
+ public:
+  D3DImpl() {
+    constexpr D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
+                                                   D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0,
+                                                   D3D_FEATURE_LEVEL_9_3,  D3D_FEATURE_LEVEL_9_2,
+                                                   D3D_FEATURE_LEVEL_9_1};
+    D3D_FEATURE_LEVEL supportedFeatureLevel;
+    check_hresult(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+                                    D3D11_CREATE_DEVICE_BGRA_SUPPORT, featureLevels,
+                                    ARRAYSIZE(featureLevels), D3D11_SDK_VERSION, Device.put(),
+                                    &supportedFeatureLevel, DeviceContext.put()));
+    DxgiDevice = Device.query<IDXGIDevice>();
+  }
+  D3DImpl(const D3DImpl&) = delete;
+  D3DImpl(D3DImpl&&) = delete;
+  D3DImpl& operator=(const D3DImpl&) = delete;
+  D3DImpl& operator=(D3DImpl&&) = delete;
+
+  wil::com_ptr<ID3D11Device> Device;
+  wil::com_ptr<ID3D11DeviceContext> DeviceContext;
+  wil::com_ptr<IDXGIDevice> DxgiDevice;
+};
+
+// Deleters
+void CaptureEngine::Deleters::operator()(D3DImpl* d3dimpl) { delete d3dimpl; }
 
 CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {
   launchedSignal_.acquire();
@@ -135,6 +167,7 @@ void CaptureEngine::EngineThread() {
     throw std::runtime_error{"xhi7P9DG"};
   }
   tid_ = GetCurrentThreadId();
+  d3dimpl_ = std::unique_ptr<D3DImpl, Deleters>{new D3DImpl()};
   launchedSignal_.release();
   MSG msg;
   while (GetMessage(&msg, nullptr, 0, 0)) {
