@@ -111,12 +111,8 @@ struct CaptureEngine::Intl {
   static bool NotInApartment(const CaptureEngine& self) {
     return GetCurrentThreadId() != self.tid_;
   }
-};
 
-// D3D impl
-class CaptureEngine::D3DImpl {
- public:
-  D3DImpl() {
+  static void InitializeD3D(CaptureEngine& self) {
     constexpr D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
                                                    D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0,
                                                    D3D_FEATURE_LEVEL_9_3,  D3D_FEATURE_LEVEL_9_2,
@@ -124,22 +120,11 @@ class CaptureEngine::D3DImpl {
     D3D_FEATURE_LEVEL supportedFeatureLevel;
     check_hresult(D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
                                     D3D11_CREATE_DEVICE_BGRA_SUPPORT, featureLevels,
-                                    ARRAYSIZE(featureLevels), D3D11_SDK_VERSION, Device.put(),
-                                    &supportedFeatureLevel, DeviceContext.put()));
-    DxgiDevice = Device.query<IDXGIDevice>();
+                                    ARRAYSIZE(featureLevels), D3D11_SDK_VERSION, self.d3ddev_.put(),
+                                    &supportedFeatureLevel, self.d3ddevctx_.put()));
+    self.dxgidev_ = self.d3ddev_.query<IDXGIDevice>();
   }
-  D3DImpl(const D3DImpl&) = delete;
-  D3DImpl(D3DImpl&&) = delete;
-  D3DImpl& operator=(const D3DImpl&) = delete;
-  D3DImpl& operator=(D3DImpl&&) = delete;
-
-  wil::com_ptr<ID3D11Device> Device;
-  wil::com_ptr<ID3D11DeviceContext> DeviceContext;
-  wil::com_ptr<IDXGIDevice> DxgiDevice;
 };
-
-// Deleters
-void CaptureEngine::Deleters::operator()(D3DImpl* d3dimpl) { delete d3dimpl; }
 
 CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {
   launchedSignal_.acquire();
@@ -167,7 +152,7 @@ void CaptureEngine::EngineThread() {
     throw std::runtime_error{"xhi7P9DG"};
   }
   tid_ = GetCurrentThreadId();
-  d3dimpl_ = std::unique_ptr<D3DImpl, Deleters>{new D3DImpl()};
+  Intl::InitializeD3D(*this);
   launchedSignal_.release();
   MSG msg;
   while (GetMessage(&msg, nullptr, 0, 0)) {

@@ -8,8 +8,15 @@
 #include <thread>
 #include <vector>
 
+// directx headers
+#include <d3d11_4.h>
+#include <dxgi.h>
+
 // windows headers
 #include <windef.h>
+
+// wil headers
+#include <wil/com.h>
 
 // vr4w headers
 #include "Coroutines.hpp"
@@ -40,11 +47,6 @@ std::vector<DeviceInfo> GetAllDevices() noexcept;
 
 class CaptureEngine {
   struct Intl;
-  class D3DImpl;
-
-  struct Deleters {
-    void operator()(D3DImpl* d3dimpl);
-  };
 
  public:
   CaptureEngine();
@@ -66,7 +68,10 @@ class CaptureEngine {
   std::jthread engineThrd_;
   HWND hwnd_ = nullptr;
   DWORD tid_ = 0;
-  std::unique_ptr<D3DImpl, Deleters> d3dimpl_;
+
+  wil::com_ptr<ID3D11Device> d3ddev_;
+  wil::com_ptr<ID3D11DeviceContext> d3ddevctx_;
+  wil::com_ptr<IDXGIDevice> dxgidev_;
 };
 
 }  // namespace vr4w

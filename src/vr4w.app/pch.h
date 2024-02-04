@@ -31,4 +31,5 @@
 #include <winrt/Windows.Foundation.h>
 
 // wil headers
+#include <wil/com.h>
 #include <wil/cppwinrt_helpers.h>

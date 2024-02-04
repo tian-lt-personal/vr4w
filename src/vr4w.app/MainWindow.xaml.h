@@ -1,5 +1,9 @@
 #pragma once
 
+// std
+#include <memory>
+
+// vr4w
 #include <CaptureEngine.hpp>
 
 // codegen
@@ -11,7 +15,7 @@ struct MainWindow : MainWindowT<MainWindow> {
   MainWindow();
 
  private:
-  vr4w::CaptureEngine captureEngine_;
+  std::unique_ptr<vr4w::CaptureEngine> captureEngine_;
 };
 
 }  // namespace winrt::vr4w_app::implementation

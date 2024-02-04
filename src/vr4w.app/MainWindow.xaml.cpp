@@ -24,8 +24,16 @@ MainWindow::MainWindow() {
   auto appWnd = AppWindow();
   appWnd.TitleBar().IconShowOptions(windowing::IconShowOptions::HideIconAndSystemMenu);
   appWnd.ResizeClient(GetAdaptedSize(800, 600, mui::GetWindowFromWindowId(appWnd.Id())));
-
+  captureEngine_ = std::make_unique<vr4w::CaptureEngine>();
   InitializeComponent();
+  Closed([this](const winrt::Windows::Foundation::IInspectable&,
+                const winrt::Microsoft::UI::Xaml::WindowEventArgs&) {
+    constexpr auto end = [](vr4w::CaptureEngine& engine) -> vr4w::FireAndForget {
+      co_await engine.Stop();
+    };
+    end(*captureEngine_);
+    captureEngine_.reset();
+  });
 }
 
 }  // namespace winrt::vr4w_app::implementation
