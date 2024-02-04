@@ -50,7 +50,7 @@ class CaptureEngine {
 
  public:
   CaptureEngine();
-  Task<> Stop();
+  ~CaptureEngine();
   Task<std::expected<std::shared_ptr<Device>, CaptureEngineError>> CreateDevice(
       std::wstring symbolicLink) const noexcept;
   Task<std::expected<std::shared_ptr<RecordingContext>, CaptureEngineError>> Start(

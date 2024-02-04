@@ -112,6 +112,16 @@ struct CaptureEngine::Intl {
     return GetCurrentThreadId() != self.tid_;
   }
 
+  static void Shutdown(const CaptureEngine& self) {
+    constexpr auto async = [](const CaptureEngine& self) -> FireAndForget {
+      if (NotInApartment(self)) {
+        co_await ResumeOnLoop(self);
+      }
+      PostQuitMessage(0);
+    };
+    async(self);
+  }
+
   static void InitializeD3D(CaptureEngine& self) {
     constexpr D3D_FEATURE_LEVEL featureLevels[] = {D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0,
                                                    D3D_FEATURE_LEVEL_10_1, D3D_FEATURE_LEVEL_10_0,
@@ -130,12 +140,7 @@ CaptureEngine::CaptureEngine() : engineThrd_([this] { EngineThread(); }) {
   launchedSignal_.acquire();
 }
 
-Task<> CaptureEngine::Stop() {
-  if (Intl::NotInApartment(*this)) {
-    co_await Intl::ResumeOnLoop(*this);
-  }
-  PostQuitMessage(0);
-}
+CaptureEngine::~CaptureEngine() { Intl::Shutdown(*this); }
 
 void CaptureEngine::EngineThread() {
   SetThreadDescription(GetCurrentThread(), L"vr4w.core.capture_engine");
