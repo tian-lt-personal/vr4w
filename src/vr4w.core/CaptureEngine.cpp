@@ -16,6 +16,14 @@ namespace {
 const auto EngineWndClass = TEXT("Vr4wEngineWndClass");
 enum class EngineMessage : unsigned { ResumeOnLoop };
 
+struct Singularity {
+  Singularity() = default;
+  Singularity(const Singularity&) = delete;
+  Singularity(Singularity&&) = delete;
+  Singularity& operator=(const Singularity&) = delete;
+  Singularity& operator=(Singularity&&) = delete;
+};
+
 void SafeRelase(auto&& ptr) {
   if (ptr != nullptr) {
     ptr->Release();
@@ -24,19 +32,32 @@ void SafeRelase(auto&& ptr) {
 
 std::expected<wil::com_ptr<IMFAttributes>, vr4w::CaptureEngineError> CreateEmptyAttributes() {
   wil::com_ptr<IMFAttributes> attrs;
-  if (FAILED(MFCreateAttributes(attrs.addressof(), 0))) {
+  if (FAILED(MFCreateAttributes(attrs.put(), 0))) {
     return std::unexpected(vr4w::CaptureEngineError::MFError);
   }
   return attrs;
 }
 
-struct Singularity {
-  Singularity() = default;
-  Singularity(const Singularity&) = delete;
-  Singularity(Singularity&&) = delete;
-  Singularity& operator=(const Singularity&) = delete;
-  Singularity& operator=(Singularity&&) = delete;
-};
+auto CreateSwapChain(const wil::com_ptr<ID3D11Device>& device, unsigned width, unsigned height) {
+  auto dxgiDevice = device.query<IDXGIDevice>();
+  wil::com_ptr<IDXGIAdapter> dxgiAdapter;
+  check_hresult(dxgiDevice->GetAdapter(dxgiAdapter.put()));
+  wil::com_ptr<IDXGIFactory2> dxgiFactory;
+  check_hresult(dxgiAdapter->GetParent(IID_PPV_ARGS(dxgiFactory.put())));
+  DXGI_SWAP_CHAIN_DESC1 desc{};
+  desc.Width = width;
+  desc.Height = height;
+  desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+  desc.SampleDesc.Count = 1;
+  desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+  desc.BufferCount = 2;
+  desc.Scaling = DXGI_SCALING_STRETCH;
+  desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+  wil::com_ptr<IDXGISwapChain1> swapChain;
+  check_hresult(
+      dxgiFactory->CreateSwapChainForComposition(device.get(), &desc, nullptr, swapChain.put()));
+  return swapChain;
+}
 
 }  // namespace
 
@@ -54,9 +75,7 @@ struct Device : Singularity {
 };
 
 struct RecordingContext : Singularity {
-  explicit RecordingContext(wil::com_ptr<IMFSourceReader> sourceReader) noexcept
-      : SourceReader(std::move(sourceReader)) {}
-
+  wil::com_ptr<IDXGISwapChain1> SwapChain;
   wil::com_ptr<IMFSourceReader> SourceReader;
 };
 
@@ -64,7 +83,7 @@ struct RecordingContext : Singularity {
 std::vector<DeviceInfo> GetAllDevices() noexcept {
   std::vector<DeviceInfo> result;
   wil::com_ptr<IMFAttributes> attrs;
-  if (FAILED(MFCreateAttributes(attrs.addressof(), 1))) {
+  if (FAILED(MFCreateAttributes(attrs.put(), 1))) {
     return result;
   }
   if (FAILED(attrs->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
@@ -85,14 +104,14 @@ std::vector<DeviceInfo> GetAllDevices() noexcept {
   for (auto i = 0u; i < count; ++i) {
     wil::unique_cotaskmem_string displayName;
     auto hr = devices[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME,
-                                             displayName.addressof(), nullptr);
+                                             displayName.put(), nullptr);
     if (FAILED(hr)) {
       continue;
     }
 
     wil::unique_cotaskmem_string symbolicLink;
     hr = devices[i]->GetAllocatedString(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK,
-                                        symbolicLink.addressof(), nullptr);
+                                        symbolicLink.put(), nullptr);
     if (FAILED(hr)) {
       continue;
     }
@@ -132,7 +151,6 @@ struct CaptureEngine::Intl {
                                     D3D11_CREATE_DEVICE_BGRA_SUPPORT, featureLevels,
                                     ARRAYSIZE(featureLevels), D3D11_SDK_VERSION, self.d3ddev_.put(),
                                     &supportedFeatureLevel, self.d3ddevctx_.put()));
-    self.dxgidev_ = self.d3ddev_.query<IDXGIDevice>();
   }
 };
 
@@ -200,7 +218,7 @@ Task<std::expected<std::shared_ptr<Device>, CaptureEngineError>> CaptureEngine::
   }
   wil::com_ptr<IMFMediaSource> source;
   wil::com_ptr<IMFAttributes> attrs;
-  if (FAILED(MFCreateAttributes(attrs.addressof(), 2))) {
+  if (FAILED(MFCreateAttributes(attrs.put(), 2))) {
     co_return std::unexpected(CaptureEngineError::MFError);
   }
   if (FAILED(attrs->SetGUID(MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
@@ -209,14 +227,15 @@ Task<std::expected<std::shared_ptr<Device>, CaptureEngineError>> CaptureEngine::
                               symbolicLink.c_str()))) {
     co_return std::unexpected(CaptureEngineError::MFError);
   }
-  if (FAILED(MFCreateDeviceSource(attrs.get(), source.addressof()))) {
+  if (FAILED(MFCreateDeviceSource(attrs.get(), source.put()))) {
     co_return std::unexpected(CaptureEngineError::MFError);
   }
   co_return std::make_shared<Device>(source.detach());
 }
 
 Task<std::expected<std::shared_ptr<RecordingContext>, CaptureEngineError>> CaptureEngine::Start(
-    std::shared_ptr<Device> device) const noexcept {
+    std::shared_ptr<Device> device, unsigned width, unsigned height) const noexcept {
+  assert(width != 0 && height != 0);
   if (Intl::NotInApartment(*this)) {
     co_await Intl::ResumeOnLoop(*this);
   }
@@ -225,11 +244,13 @@ Task<std::expected<std::shared_ptr<RecordingContext>, CaptureEngineError>> Captu
     co_return std::unexpected(emptyAttrs.error());
   }
   wil::com_ptr<IMFSourceReader> reader;
-  if (FAILED(MFCreateSourceReaderFromMediaSource(device->Ptr, emptyAttrs->get(),
-                                                 reader.addressof()))) {
+  if (FAILED(MFCreateSourceReaderFromMediaSource(device->Ptr, emptyAttrs->get(), reader.put()))) {
     co_return std::unexpected(CaptureEngineError::MFError);
   }
-  co_return std::make_shared<RecordingContext>(reader.detach());
+  auto context = std::make_shared<RecordingContext>();
+  context->SourceReader = std::move(reader);
+  context->SwapChain = CreateSwapChain(d3ddev_, width, height);
+  co_return context;
 }
 
 }  // namespace vr4w

@@ -12,7 +12,10 @@
 namespace winrt::vr4w_app::implementation {
 
 struct MainWindow : MainWindowT<MainWindow> {
+ public:
   MainWindow();
+
+  Microsoft::UI::Xaml::Input::ICommand ToggleRecordCmd();
 
  private:
   std::unique_ptr<vr4w::CaptureEngine> captureEngine_;

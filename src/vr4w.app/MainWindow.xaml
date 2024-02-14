@@ -12,7 +12,27 @@
         <MicaBackdrop Kind="Base"/>
     </Window.SystemBackdrop>
 
-    <Grid>
-        <SwapChainPanel/>
+    <Grid x:Name="RootGrid"
+          Margin="4">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Column 0 -->
+        <Grid Grid.Column="0">
+            <TextBlock VerticalAlignment="Center"
+                       HorizontalAlignment="Center"
+                       Text="{local:XResourceString Name=Preview}"/>
+            <SwapChainPanel x:Name="PreviewScp"/>
+        </Grid>
+
+        <!-- Column 1 -->
+        <StackPanel Grid.Column="1"
+                    VerticalAlignment="Center">
+            <ToggleButton Command="{x:Bind ToggleRecordCmd}">
+                <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE714;"/>
+            </ToggleButton>
+        </StackPanel>
     </Grid>
 </Window>

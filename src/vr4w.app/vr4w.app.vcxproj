@@ -129,6 +129,7 @@
     <ClInclude Include="XResourceString.h">
       <DependentUpon>XResourceString.idl</DependentUpon>
     </ClInclude>
+    <ClInclude Include="XUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />

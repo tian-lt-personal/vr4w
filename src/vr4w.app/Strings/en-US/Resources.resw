@@ -120,4 +120,7 @@
   <data name="AppDisplayName" xml:space="preserve">
     <value>Video Recorder for Windows</value>
   </data>
+  <data name="Preview" xml:space="preserve">
+    <value>Preview</value>
+  </data>
 </root>

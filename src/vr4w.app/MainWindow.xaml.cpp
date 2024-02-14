@@ -7,6 +7,9 @@
 // factory
 #include "MainWindow.g.cpp"
 
+// utils
+#include "XUtils.h"
+
 namespace windowing = winrt::Microsoft::UI::Windowing;
 namespace mui = winrt::Microsoft::UI;
 
@@ -28,6 +31,13 @@ MainWindow::MainWindow() {
   InitializeComponent();
   Closed([this](const winrt::Windows::Foundation::IInspectable&,
                 const winrt::Microsoft::UI::Xaml::WindowEventArgs&) { captureEngine_.reset(); });
+}
+
+Microsoft::UI::Xaml::Input::ICommand MainWindow::ToggleRecordCmd() {
+  return winrt::make<RelayCommand>([this](const winrt::Windows::Foundation::IInspectable&) {
+    auto devices = vr4w::GetAllDevices();
+    int c = 0;
+  });
 }
 
 }  // namespace winrt::vr4w_app::implementation

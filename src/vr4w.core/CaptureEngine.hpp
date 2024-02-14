@@ -10,7 +10,6 @@
 
 // directx headers
 #include <d3d11_4.h>
-#include <dxgi.h>
 
 // windows headers
 #include <windef.h>
@@ -54,7 +53,7 @@ class CaptureEngine {
   Task<std::expected<std::shared_ptr<Device>, CaptureEngineError>> CreateDevice(
       std::wstring symbolicLink) const noexcept;
   Task<std::expected<std::shared_ptr<RecordingContext>, CaptureEngineError>> Start(
-      std::shared_ptr<Device> device) const noexcept;
+      std::shared_ptr<Device> device, unsigned width, unsigned height) const noexcept;
 
  private:
   void EngineThread();
@@ -71,7 +70,6 @@ class CaptureEngine {
 
   wil::com_ptr<ID3D11Device> d3ddev_;
   wil::com_ptr<ID3D11DeviceContext> d3ddevctx_;
-  wil::com_ptr<IDXGIDevice> dxgidev_;
 };
 
 }  // namespace vr4w

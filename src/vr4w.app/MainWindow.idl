@@ -1,5 +1,8 @@
 namespace vr4w_app {
 
-[default_interface] runtimeclass MainWindow : Microsoft.UI.Xaml.Window { MainWindow(); }
+[default_interface] runtimeclass MainWindow : Microsoft.UI.Xaml.Window {
+  MainWindow();
+  Microsoft.UI.Xaml.Input.ICommand ToggleRecordCmd { get; };
+}
 
 }  // namespace vr4w_app
